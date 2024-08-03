@@ -937,7 +937,7 @@ template <typename Float> struct float_triple {
   using uint_t = typename float_traits::uint_t;
   using uint_2_t = typename math::uint_2_t;
 
-  float_traits::uint_t significand;
+  typename float_traits::uint_t significand;
   int32_t exponent;
   int8_t sign;
 
