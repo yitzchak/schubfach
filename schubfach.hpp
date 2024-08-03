@@ -931,17 +931,18 @@ template <> uint64_2_t math<uint64_t>::pow10_residual(int32_t k) {
   return g[static_cast<uint32_t>(k - k_min)];
 }
 
-template <typename Float> struct float_triple {
+template <typename Float> struct decimal_float {
   using float_traits = float_traits<Float>;
-  using math = math<typename float_traits::uint_t>;
   using uint_t = typename float_traits::uint_t;
-  using uint_2_t = typename math::uint_2_t;
+  using uint_2_t = typename math<uint_t>::uint_2_t;
+
+  math<uint_t> math;
 
   typename float_traits::uint_t significand;
   int32_t exponent;
   int8_t sign;
 
-  float_triple(Float value) {
+  decimal_float(Float value) {
     significand = reinterpret_bits<typename float_traits::uint_t>(value);
     exponent = (significand & float_traits::exponent_mask) >> float_traits::exponent_shift;
     sign = (significand & float_traits::sign_mask) == 0 ? 1 : -1;
@@ -958,9 +959,6 @@ template <typename Float> struct float_triple {
     }
 
     const bool is_even = (significand % 2 == 0);
-    const bool accept_lower = is_even;
-    const bool accept_upper = is_even;
-
     const bool lower_boundary_is_closer = std::popcount(significand) == 1;
 
     const uint_t cbl = 4 * significand - 2 + lower_boundary_is_closer;
@@ -968,16 +966,16 @@ template <typename Float> struct float_triple {
     const uint_t cbr = 4 * significand + 2;
 
     const int32_t k = (exponent * 1262611 - (lower_boundary_is_closer ? 524031 : 0)) >> 22;
-    const int32_t h = exponent + math::floor_log2_pow10(-k) + 1;
+    const int32_t h = exponent + math.floor_log2_pow10(-k) + 1;
     exponent = k;
 
-    const uint_2_t pow10 = math::pow10_residual(-exponent);
-    const uint_t vbl = math::round_to_odd(pow10, cbl << h);
-    const uint_t vb = math::round_to_odd(pow10, cb << h);
-    const uint_t vbr = math::round_to_odd(pow10, cbr << h);
+    const uint_2_t pow10 = math.pow10_residual(-exponent);
+    const uint_t vbl = math.round_to_odd(pow10, cbl << h);
+    const uint_t vb = math.round_to_odd(pow10, cb << h);
+    const uint_t vbr = math.round_to_odd(pow10, cbr << h);
 
-    const uint_t lower = vbl + !accept_lower;
-    const uint_t upper = vbr - !accept_upper;
+    const uint_t lower = vbl + !is_even;
+    const uint_t upper = vbr - !is_even;
 
     significand = vb / 4;
 
@@ -987,7 +985,7 @@ template <typename Float> struct float_triple {
       const bool wp_inside = 40 * sp + 40 <= upper;
       if (up_inside != wp_inside) {
         significand = sp + wp_inside;
-        exponent += math::remove_trailing_zeros(significand) + 1;
+        exponent += math.remove_trailing_zeros(significand) + 1;
         return;
       }
     }
@@ -996,7 +994,7 @@ template <typename Float> struct float_triple {
     const bool w_inside = 4 * significand + 4 <= upper;
     if (u_inside != w_inside) {
       significand += w_inside;
-      exponent += math::remove_trailing_zeros(significand);
+      exponent += math.remove_trailing_zeros(significand);
       return;
     }
 
@@ -1004,7 +1002,7 @@ template <typename Float> struct float_triple {
     const bool round_up = vb > mid || (vb == mid && (significand & 1) != 0);
 
     significand += round_up;
-    exponent += math::remove_trailing_zeros(significand);
+    exponent += math.remove_trailing_zeros(significand);
   }
 };
 } // namespace schubfach
