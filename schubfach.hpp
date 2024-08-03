@@ -67,11 +67,12 @@ template <typename uint_t> struct math {
   static inline uint_t pow10(int32_t k);
 
   static inline uint8_t count_digits(uint_t x) {
-    int32_t width = std::popcount(x);
-    int32_t lower = ceiling_log10_pow2(width - 1);
-    int32_t upper = ceiling_log10_pow2(width);
+    if (x == 0)
+      return 1;
 
-    return (upper == lower || x < pow10(lower)) ? lower : upper;
+    int32_t e = ceiling_log10_pow2(std::bit_width(x) - 1);
+
+    return (x < pow10(e)) ? e : (e + 1);
   }
 
   static inline uint_2_t pow10_residual(int32_t k);
