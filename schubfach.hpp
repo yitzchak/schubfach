@@ -934,8 +934,8 @@ template <> uint64_2_t math<uint64_t>::pow10_residual(int32_t k) {
 template <typename Float> struct float_triple {
   using float_traits = float_traits<Float>;
   using math = math<typename float_traits::uint_t>;
-  using uint_t = float_traits::uint_t;
-  using uint_2_t = math::uint_2_t;
+  using uint_t = typename float_traits::uint_t;
+  using uint_2_t = typename math::uint_2_t;
 
   float_traits::uint_t significand;
   int32_t exponent;
