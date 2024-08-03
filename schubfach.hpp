@@ -75,6 +75,13 @@ template <typename uint_t> struct math {
     return (x < pow10(e)) ? e : (e + 1);
   }
 
+  static inline uint_t rotr(uint_t x, uint8_t r) {
+    r &= (limits::digits - 1);
+    return (x >> r) | (x << ((limits::digits - r) & (limits::digits - 1)));
+  }
+
+  static inline int32_t remove_trailing_zeros(uint_t& x);
+
   static inline uint_2_t pow10_residual(int32_t k);
 
   static inline uint_t round_to_odd(uint_2_t g, uint_t cp);
@@ -113,6 +120,49 @@ template <> uint64_t math<uint64_t>::pow10(int32_t k) {
   SF_ASSERT(k >= 0);
   SF_ASSERT(k <= k_max);
   return g[static_cast<uint32_t>(k)];
+}
+
+template <> int32_t math<uint32_t>::remove_trailing_zeros(uint32_t& x) {
+  auto r = rotr(x * 184254097u, 4);
+  auto b = r < 429497u;
+  int32_t s = b;
+  x = b ? r : x;
+
+  r = rotr(x * 42949673u, 2);
+  b = r < 42949673u;
+  s = s * 2 + b;
+  x = b ? r : x;
+
+  r = rotr(x * 1288490189u, 1);
+  b = r < 429496730u;
+  s = s * 2 + b;
+  x = b ? r : x;
+
+  return s;
+}
+
+template <> int32_t math<uint64_t>::remove_trailing_zeros(uint64_t& x) {
+  auto r = rotr(x * 28999941890838049u, 8);
+  auto b = r < 184467440738u;
+  int32_t s = b;
+  x = b ? r : x;
+
+  r = rotr(x * 182622766329724561u, 4);
+  b = r < 1844674407370956u;
+  s = s * 2 + b;
+  x = b ? r : x;
+
+  r = rotr(x * 10330176681277348905u, 2);
+  b = r < 184467440737095517u;
+  s = s * 2 + b;
+  x = b ? r : x;
+
+  r = rotr(x * 14757395258967641293u, 1);
+  b = r < 1844674407370955162u;
+  s = s * 2 + b;
+  x = b ? r : x;
+
+  return s;
 }
 
 template <> uint32_t math<uint32_t>::round_to_odd(uint64_t g, uint32_t cp) {
@@ -906,9 +956,7 @@ template <typename Float> struct float_triple {
         significand = significand | (typename float_traits::uint_t{1} << (float_traits::significand_width - 1));
       exponent -= float_traits::exponent_bias;
     }
-  }
 
-  float_triple to_decimal() {
     const bool is_even = (significand % 2 == 0);
     const bool accept_lower = is_even;
     const bool accept_upper = is_even;
@@ -939,8 +987,8 @@ template <typename Float> struct float_triple {
       const bool wp_inside = 40 * sp + 40 <= upper;
       if (up_inside != wp_inside) {
         significand = sp + wp_inside;
-        exponent++;
-        return *this;
+        exponent += math::remove_trailing_zeros(significand) + 1;
+        return;
       }
     }
 
@@ -948,14 +996,15 @@ template <typename Float> struct float_triple {
     const bool w_inside = 4 * significand + 4 <= upper;
     if (u_inside != w_inside) {
       significand += w_inside;
-      return *this;
+      exponent += math::remove_trailing_zeros(significand);
+      return;
     }
 
     const uint_t mid = 4 * significand + 2;
     const bool round_up = vb > mid || (vb == mid && (significand & 1) != 0);
 
     significand += round_up;
-    return *this;
+    exponent += math::remove_trailing_zeros(significand);
   }
 };
 } // namespace schubfach
