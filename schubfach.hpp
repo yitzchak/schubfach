@@ -59,6 +59,10 @@ template <typename uint_t> struct math {
 
   static inline int32_t floor_log2_pow10(int32_t e) { return (e * 1741647) >> 19; }
 
+  static inline int32_t floor_log10_pow2(int32_t e, bool three_quarters) {
+    return (exponent * 1262611 - (three_quarters ? 524031 : 0)) >> 22;
+  }
+
   static inline int32_t ceiling_log10_pow2(int32_t e) {
     int64_t p = e * 1262611;
     return (p >> 22) + ((p & ((1 << 22) - 1)) != 0);
@@ -961,13 +965,13 @@ template <typename Float> struct decimal_float {
     const bool is_even = (significand % 2 == 0);
     const bool lower_boundary_is_closer = std::popcount(significand) == 1;
 
+    const int32_t k = math.floor_log10_pow2(exponent, lower_boundary_is_closer);
+    const int32_t h = exponent + math.floor_log2_pow10(-k) + 1;
+    exponent = k;
+
     const uint_t cbl = 4 * significand - 2 + lower_boundary_is_closer;
     const uint_t cb = 4 * significand;
     const uint_t cbr = 4 * significand + 2;
-
-    const int32_t k = (exponent * 1262611 - (lower_boundary_is_closer ? 524031 : 0)) >> 22;
-    const int32_t h = exponent + math.floor_log2_pow10(-k) + 1;
-    exponent = k;
 
     const uint_2_t pow10 = math.pow10_residual(-exponent);
     const uint_t vbl = math.round_to_odd(pow10, cbl << h);
