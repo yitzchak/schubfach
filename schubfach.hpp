@@ -60,7 +60,7 @@ template <typename uint_t> struct math {
   static inline int32_t floor_log2_pow10(int32_t e) { return (e * 1741647) >> 19; }
 
   static inline int32_t floor_log10_pow2(int32_t e, bool three_quarters) {
-    return (exponent * 1262611 - (three_quarters ? 524031 : 0)) >> 22;
+    return (e * 1262611 - (three_quarters ? 524031 : 0)) >> 22;
   }
 
   static inline int32_t ceiling_log10_pow2(int32_t e) {
