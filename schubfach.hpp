@@ -242,7 +242,14 @@ template <> int32_t math<uint64_t>::remove_trailing_zeros(uint64_t& x) {
   return s;
 }
 
-template <> int32_t math<__uint128_t>::remove_trailing_zeros(__uint128_t& x) { return 0; }
+template <> int32_t math<__uint128_t>::remove_trailing_zeros(__uint128_t& x) {
+  int32_t count = 0;
+  while (x != 0 && (x % 10) == 0) {
+    count++;
+    x /= 10;
+  }
+  return count;
+}
 
 template <> uint32_t math<uint32_t>::round_to_odd(uint64_t g, uint32_t cp) {
   using limits = std::numeric_limits<uint32_t>;
