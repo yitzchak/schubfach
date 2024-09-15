@@ -274,9 +274,40 @@ template <> uint64_t math<uint64_t>::round_to_odd(uint64_2_t g, uint64_t cp) {
   return y1 | (y0 > 1);
 }
 
+#if BITINT_MAXWIDTH < 256
+uint128_2_t mul128(__uint128_t a, __uint128_t b) {
+  constexpr __uint128_t lo_mask = 0xFFFFFFFFFFFFFFFF;
+
+  __uint128_t a_hi = a >> 64;
+  __uint128_t a_lo = a & lo_mask;
+  __uint128_t b_hi = b >> 64;
+  __uint128_t b_lo = b & lo_mask;
+
+  __uint128_t p1 = a_hi * b_hi;
+  __uint128_t p2 = a_hi * b_lo;
+  __uint128_t p3 = a_lo * b_hi;
+  __uint128_t p4 = a_lo * b_lo;
+
+  __uint128_t lo = p4 + (p2 << 64) + (p3 << 64);
+  __uint128_t carry = (lo < p4) ? 1 : 0;
+  __uint128_t hi = p1 + (p2 >> 64) + (p3 >> 64) + carry;
+
+  return {.hi = hi, .lo = lo};
+}
+#endif
+
 template <> __uint128_t math<__uint128_t>::round_to_odd(uint128_2_t g, __uint128_t cp) {
+#if BITINT_MAXWIDTH < 256
+  const uint128_2_t x = mul128(cp, g.lo);
+  uint128_2_t y = mul128(cp, g.hi);
+  y.lo += x.hi;
+  if (y.lo < x.hi)
+    y.hi++;
+
+  return y.hi | (y.lo > 1);
+#else
   using limits = std::numeric_limits<__uint128_t>;
-  typedef _BitInt(256) carrier;
+  typedef unsigned _BitInt(256) carrier;
 
   const carrier x = carrier{cp} * g.lo;
   const carrier y = carrier{cp} * g.hi + static_cast<__uint128_t>(x >> limits::digits);
@@ -284,6 +315,7 @@ template <> __uint128_t math<__uint128_t>::round_to_odd(uint128_2_t g, __uint128
   const __uint128_t y0 = static_cast<__uint128_t>(y);
   const __uint128_t y1 = static_cast<__uint128_t>(y >> limits::digits);
   return y1 | (y0 > 1);
+#endif
 }
 
 template <> uint64_t math<uint32_t>::pow10_residual(int32_t k) {
