@@ -288,11 +288,11 @@ uint128_2_t mul128(__uint128_t a, __uint128_t b) {
   __uint128_t p3 = a_lo * b_hi;
   __uint128_t p4 = a_lo * b_lo;
 
-  __uint128_t lo = p4 + (p2 << 64) + (p3 << 64);
-  __uint128_t carry = (lo < p4) ? 1 : 0;
-  __uint128_t hi = p1 + (p2 >> 64) + (p3 >> 64) + carry;
+  uint128_2_t result = {.hi = p1 + (p2 >> 64) + (p3 >> 64), .lo = p4 + (p2 << 64) + (p3 << 64)};
+  if (result.lo < p4)
+    result.hi++;
 
-  return {.hi = hi, .lo = lo};
+  return result;
 }
 #endif
 
